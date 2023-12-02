@@ -117,3 +117,5 @@ def main():
             torch.save(model.state_dict(), f"model.pth")
     wandb.finish()
 
+if __name__ == "__main__":
+    main()
