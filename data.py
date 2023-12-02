@@ -64,7 +64,7 @@ class TinyStoriesDataset(torch.utils.data.Dataset):
         
 
     def load_data_from_json(self):
-        for filename in tqdm(os.listdir(config.JSON_DIR)[:1], "Loading data"):
+        for filename in tqdm(os.listdir(config.JSON_DIR), "Loading data"):
             if not filename.endswith('.json'):
                 continue
             with open(os.path.join(config.JSON_DIR, filename), 'r') as file_json:
