@@ -6,7 +6,7 @@ import wandb
 from itertools import repeat
 
 import config
-from data import TinyStoriesDataset
+from data import TinyStoriesDataset, get_tokenizer
 from model import LLaMA
 
 def inf_loop(data_loader):
@@ -88,7 +88,7 @@ def main():
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    tokenizer = config.get_tokenizer()
+    tokenizer = get_tokenizer()
 
     train_dataset = TinyStoriesDataset(config.DATASET_DIR, tokenizer, train=True)
     train_dataloader = inf_loop(torch.utils.data.DataLoader(train_dataset, batch_size=config.BATCH_SIZE, shuffle=True, num_workers=4))

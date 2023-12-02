@@ -1,9 +1,11 @@
-JSON_DIR = "/Users/danny.paleyev/dl2_bhw1/TinyStories_all_data"
-TXT_DIR = "/Users/danny.paleyev/dl2_bhw1/TinyStories_txt"
-DATASET_DIR = "/Users/danny.paleyev/dl2_bhw1/tokenized"
-VAL_TXT = "/Users/danny.paleyev/dl2_bhw1/TinyStoriesV3-GPT4-valid.txt"
+JSON_DIR = "/notebooks/TinyStories_all_data"
+TXT_DIR = "/notebooks/TinyStories_txt"
+DATASET_DIR = "/notebooks/tokenized"
+VAL_TXT = "/notebooks/TinyStoriesV3-GPT4-valid.txt"
 
-TOKENIZER_PATH = "/Users/danny.paleyev/dl2_bhw1/tokenizer.model"
+TOKENIZER_PATH = "/notebooks/tokenizer.model"
+RUN_NAME = "test"
+
 VOCAB_SIZE = 16000
 MAX_SEQ_LEN = 256
 

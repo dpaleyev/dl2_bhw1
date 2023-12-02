@@ -21,6 +21,8 @@ def json_to_txt():
                 file_txt.write("\n".join(item["story"] for item in data))
 
 def get_tokenizer():
+    if not os.path.exists(config.TXT_DIR):
+        json_to_txt()
     if not os.path.exists(config.TOKENIZER_PATH):
         txt_files = glob.glob(f"{config.TXT_DIR}/*.txt")
         txt_files_str = ','.join(txt_files)
