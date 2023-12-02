@@ -67,6 +67,22 @@ def evaluate(model, criterion, dataloader, device):
 
     return losses / len(dataloader)
 
+@torch.no_grad()
+def generate(model, tokenizer, examples, device, max_len=200, temperature=1.0):
+    model.eval()
+
+    prefix = torch.full((examples, 1), fill_value=tokenizer.bos_id()).to(device)
+    for i in range(max_len - 1):
+        target_mask = generate_square_mask(prefix.shape[1], device)
+        target_pad_mask = (prefix == tokenizer.pad_id()).to(device)
+
+        logits = model(prefix, target_mask, target_pad_mask)
+        logits = logits[:, -1, :] / temperature
+        next_token = torch.multinomial(logits.softmax(dim=-1), num_samples=1)
+        prefix = torch.cat((prefix, next_token), dim=-1)
+
+    return tokenizer.decode_batch(prefix)
+
 def main():
     wandb.init(project="dl2_bhw1", name = config.RUN_NAME)
 
@@ -91,8 +107,10 @@ def main():
     for epoch in tqdm(range(config.EPOCHS)):
         train_loss = train_epoch(model, optimizer, criterion, train_dataloader)
         val_loss = evaluate(model, val_dataloader, criterion)
+        examples = generate(model, tokenizer, 3, device)
 
         wandb.log({"train_loss": train_loss, "val_loss": val_loss})
+        wandb.log({"examples": [wandb.Text(example) for example in examples]})
         print(f"Epoch {epoch+1} train_loss: {train_loss:.4f} val_loss: {val_loss:.4f}")
 
         if epoch % config.SAVE_PERIOD == 0:
