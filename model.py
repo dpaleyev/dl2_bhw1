@@ -35,8 +35,8 @@ class PreNormDecoderBlock(nn.Module):
         self.ffn_layernorm = nn.LayerNorm(embed_dim)
     
     def forward(self, x, attention_mask, padding_mask):
-        x = self.attn_layernorm(x)
-        x_attn, _ = self.attention(x, x, x, key_padding_mask=padding_mask, attn_mask=attention_mask)
+        x_norm = self.attn_layernorm(x)
+        x_attn, _ = self.attention(x_norm, x_norm, x_norm, key_padding_mask=padding_mask, attn_mask=attention_mask)
         h = x_attn + x
         out = h + self.ffn(self.ffn_layernorm(x))
         return out
@@ -52,10 +52,10 @@ class Decoder(nn.Module):
         return x
 
 class LLaMA(nn.Module):
-    def __init__(self, vocab_size, embed_dim, n_heads, hidden_dim, num_layers, *args, **kwargs):
+    def __init__(self, vocab_size, embed_dim, n_heads, hidden_dim, num_layers, max_seq_len, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.embedding = nn.Embedding(vocab_size, embed_dim)
-        self.positional_encoding = PositionalEncoding(embed_dim)
+        self.positional_encoding = PositionalEncoding(embed_dim, max_seq_len)
         self.decoder = Decoder(PreNormDecoderBlock(embed_dim, n_heads, hidden_dim), num_layers)
         self.linear = nn.Linear(embed_dim, vocab_size)
     
