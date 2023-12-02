@@ -41,7 +41,9 @@ class TinyStoriesDataset(torch.utils.data.Dataset):
     def __init__(self, tokenizer):
         self.tokenizer = tokenizer
         self.data_files = []
-        self.load_data()
+        if not os.path.exists(config.DATASET_DIR):
+            os.makedirs(config.DATASET_DIR, exist_ok=True)
+            self.load_data()
 
     def load_data(self):
         for filename in tqdm(os.listdir(config.JSON_DIR)[:2], "Loading data"):
@@ -59,21 +61,14 @@ class TinyStoriesDataset(torch.utils.data.Dataset):
         return len(self.data_files)
 
     def __getitem__(self, idx):
-        tokens = np.load(os.path.join(config.DATASET_DIR, self.data_files[idx]))
-        return tokens
-
-    def get_collator(self):
         BOS_ID = self.tokenizer.bos_id()
         EOS_ID = self.tokenizer.eos_id()
         PAD_ID = self.tokenizer.pad_id()
 
-        def collate_fn(batch):
-            padded_batch = [torch.tensor([BOS_ID] + item + [EOS_ID]) for item in batch]
-            padded_batch = torch.nn.utils.rnn.pad_sequence(padded_batch, padding_value=PAD_ID, batch_first=True)
-            padding_mask = (padded_batch == PAD_ID)
-            return {
-                "tokens": padded_batch,
-                "padding_mask": padding_mask,
-            }
-        
-        return collate_fn
+        tokens = np.load(os.path.join(config.DATASET_DIR, self.data_files[idx]))
+        indices = [BOS_ID] + tokens[:config.MAX_SEQ_LEN - 2] + [EOS_ID]
+        length = len(indices)
+        pad = torch.full((self.max_length,), PAD_ID, dtype=torch.int64)
+        pad[:length] = torch.tensor(indices)
+
+        return torch.tensor(pad)

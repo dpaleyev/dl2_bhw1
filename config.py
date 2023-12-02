@@ -4,3 +4,4 @@ DATASET_DIR = "/Users/danny.paleyev/dl2_bhw1/tokenized"
 
 TOKENIZER_PATH = "/Users/danny.paleyev/dl2_bhw1/tokenizer.model"
 VOCAB_SIZE = 32000
+MAX_SEQ_LEN = 256
