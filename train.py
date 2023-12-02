@@ -1,39 +1,101 @@
 import torch
 import torch.nn as nn
 import tqdm
+import wandb
+
+from itertools import repeat
+
 import config
+from data import TinyStoriesDataset
+from model import LLaMA
+
+def inf_loop(data_loader):
+    """wrapper function for endless data loader."""
+    for loader in repeat(data_loader):
+        yield from loader
+
 
 def generate_square_mask(sz, device):
     mask = (torch.triu(torch.ones((sz, sz), device=device)) == 1).transpose(0, 1)
     mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
     return mask
 
-def train_epoch(model, optimizer, criterion, dataloader):
+def train_epoch(model, criterion, optimizer, scheduler, dataloader, len_epoch, device):
     model.train()
     losses = 0
 
-    for target, target_pad_mask in tqdm(dataloader):
-        target = target.to(config.DEVICE)
-        target_pad_mask = target_pad_mask.to(config.DEVICE)
+    for target, target_pad_mask in tqdm(dataloader, desc="train", total=len_epoch):
+        target = target.to(device)
+        target_pad_mask = target_pad_mask.to(device)
 
         target_input = target[:, :-1]
 
-        target_mask = generate_square_mask(target_input.shape[1], config.DEVICE)
+        target_mask = generate_square_mask(target_input.shape[1], device)
 
         logits = model(target_input, target_mask, target_pad_mask)
 
         optimizer.zero_grad()
 
         target_out = target[:, 1:]
-        loss = criterion(logits.reshape(-1), target_out.reshape(-1))
+        loss = criterion(logits.reshape(-1, logits.shape[-1]), target_out.reshape(-1))
         loss.backward()
 
         optimizer.step()
+        scheduler.step()
         losses += loss.item()
+
+    return losses / len_epoch
+
+def evaluate(model, criterion, dataloader, device):
+    model.eval()
+    losses = 0
+
+    with torch.no_grad():
+        for target, target_pad_mask in tqdm(dataloader, desc="val"):
+            target = target.to(device)
+            target_pad_mask = target_pad_mask.to(device)
+
+            target_input = target[:, :-1]
+
+            target_mask = generate_square_mask(target_input.shape[1], device)
+
+            logits = model(target_input, target_mask, target_pad_mask)
+
+            target_out = target[:, 1:]
+            loss = criterion(logits.reshape(-1, logits.shape[-1]), target_out.reshape(-1))
+            losses += loss.item()
 
     return losses / len(dataloader)
 
-def train(epochs, model, optimizer, criterion, dataloader):
-    for epoch in tqdm(range(epochs)):
-        loss = train_epoch(model, optimizer, criterion, dataloader)
-        print(f"Epoch {epoch+1} Loss: {loss:.4f}")
+def main():
+    wandb.init(project="dl2_bhw1", name = config.RUN_NAME)
+
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+    tokenizer = config.get_tokenizer()
+
+    train_dataset = TinyStoriesDataset(config.DATASET_DIR, tokenizer, train=True)
+    train_dataloader = inf_loop(torch.utils.data.DataLoader(train_dataset, batch_size=config.BATCH_SIZE, shuffle=True, num_workers=4))
+
+    val_dataset = TinyStoriesDataset(config.DATASET_DIR, tokenizer, train=False)
+    val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=config.BATCH_SIZE, shuffle=False, num_workers=4)
+
+    model = LLaMA(config.VOCAB_SIZE, config.EMBED_DIM, config.N_HEADS, config.HIDDEN_DIM, config.NUM_LAYERS, config.MAX_SEQ_LEN).to(device)
+
+    optimizer = torch.optim.AdamW(model.parameters(), lr=config.LR, weight_decay=config.WEIGHT_DECAY)
+    criterion = nn.CrossEntropyLoss(ignore_index=tokenizer.pad_id())
+
+    scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=config.LR, steps_per_epoch=len(train_dataloader), epochs=config.EPOCHS, pct_start=0.2)
+    criterion = nn.CrossEntropyLoss(ignore_index=tokenizer.pad_id())
+
+    for epoch in tqdm(range(config.EPOCHS)):
+        train_loss = train_epoch(model, optimizer, criterion, train_dataloader)
+        val_loss = evaluate(model, val_dataloader, criterion)
+
+        wandb.log({"train_loss": train_loss, "val_loss": val_loss})
+        print(f"Epoch {epoch+1} train_loss: {train_loss:.4f} val_loss: {val_loss:.4f}")
+
+        if epoch % config.SAVE_PERIOD == 0:
+            torch.save(model.state_dict(), f"model.pth")
+    wandb.finish()
+

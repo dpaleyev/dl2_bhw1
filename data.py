@@ -88,5 +88,8 @@ class TinyStoriesDataset(torch.utils.data.Dataset):
         length = len(indices)
         pad = torch.full((config.MAX_SEQ_LEN,), PAD_ID, dtype=torch.int64)
         pad[:length] = torch.tensor(indices)
+        padded_seq =  torch.tensor(pad)
 
-        return torch.tensor(pad)
+        padding_mask = (padded_seq == PAD_ID)
+
+        return padded_seq, padding_mask
