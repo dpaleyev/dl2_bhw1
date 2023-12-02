@@ -38,15 +38,33 @@ def get_tokenizer():
 
 
 class TinyStoriesDataset(torch.utils.data.Dataset):
-    def __init__(self, tokenizer):
+    def __init__(self, dataset_dir, tokenizer, train=True):
         self.tokenizer = tokenizer
         self.data_files = []
-        if not os.path.exists(config.DATASET_DIR):
-            os.makedirs(config.DATASET_DIR, exist_ok=True)
-            self.load_data()
+        self.dataset_dir = dataset_dir
+        if not os.path.exists(self.dataset_dir):
+            os.makedirs(self.dataset_dir , exist_ok=True)
+            if train:
+                self.load_data_from_json()
+            else:
+                self.load_data_from_txt_file()
+        else:
+            for filename in sorted(os.listdir(self.dataset_dir)):
+                if filename.endswith('.npy'):
+                    self.data_files.append(filename)
 
-    def load_data(self):
-        for filename in tqdm(os.listdir(config.JSON_DIR)[:2], "Loading data"):
+
+    def load_data_from_txt_file(self):
+        with open(os.path.join(config.VAL_TXT)) as file_txt:
+            for idx, line in tqdm(enumerate(file_txt), "Loading data"):
+                tokens = self.tokenizer.encode(line)
+                npy_filename = f"val_data_{idx}.npy"
+                np.save(os.path.join(self.dataset_dir, npy_filename), tokens)
+                self.data_files.append(npy_filename)
+        
+
+    def load_data_from_json(self):
+        for filename in tqdm(os.listdir(config.JSON_DIR)[:1], "Loading data"):
             if not filename.endswith('.json'):
                 continue
             with open(os.path.join(config.JSON_DIR, filename), 'r') as file_json:
@@ -54,7 +72,7 @@ class TinyStoriesDataset(torch.utils.data.Dataset):
                 for idx, item in enumerate(data):
                     tokens = self.tokenizer.encode(item['story'])
                     npy_filename = f"{filename}_{idx}.npy"
-                    np.save(os.path.join(config.DATASET_DIR, npy_filename), tokens)
+                    np.save(os.path.join(self.dataset_dir, npy_filename), tokens)
                     self.data_files.append(npy_filename)
 
     def __len__(self):
@@ -65,7 +83,7 @@ class TinyStoriesDataset(torch.utils.data.Dataset):
         EOS_ID = self.tokenizer.eos_id()
         PAD_ID = self.tokenizer.pad_id()
 
-        tokens = np.load(os.path.join(config.DATASET_DIR, self.data_files[idx]))
+        tokens = list(np.load(os.path.join(self.dataset_dir, self.data_files[idx])))
         indices = [BOS_ID] + tokens[:config.MAX_SEQ_LEN - 2] + [EOS_ID]
         length = len(indices)
         pad = torch.full((config.MAX_SEQ_LEN,), PAD_ID, dtype=torch.int64)
