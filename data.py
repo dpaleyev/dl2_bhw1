@@ -44,6 +44,7 @@ class TinyStoriesDataset(torch.utils.data.Dataset):
         self.tokenizer = tokenizer
         self.data_files = []
         self.dataset_dir = dataset_dir
+        self.train = train
         if not os.path.exists(self.dataset_dir):
             os.makedirs(self.dataset_dir , exist_ok=True)
             self.load_data_from_txt_file(txt_file)
@@ -55,7 +56,7 @@ class TinyStoriesDataset(torch.utils.data.Dataset):
 
     def load_data_from_txt_file(self, file):
         with open(file) as file_txt:
-            for idx, line in tqdm(enumerate(file_txt), "Loading data"):
+            for idx, line in tqdm(enumerate(file_txt), f"Loading {'train' if self.train else 'val'} data"):
                 tokens = self.tokenizer.encode(line)
                 npy_filename = f"data_{idx}.npy"
                 np.save(os.path.join(self.dataset_dir, npy_filename), tokens)
