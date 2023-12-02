@@ -90,10 +90,10 @@ def main():
 
     tokenizer = get_tokenizer()
 
-    train_dataset = TinyStoriesDataset(config.DATASET_DIR, tokenizer, train=True)
+    train_dataset = TinyStoriesDataset(config.TRAIN_DIR, config.TRAIN_TXT, tokenizer, train=True)
     train_dataloader = inf_loop(torch.utils.data.DataLoader(train_dataset, batch_size=config.BATCH_SIZE, shuffle=True, num_workers=4))
 
-    val_dataset = TinyStoriesDataset(config.DATASET_DIR, tokenizer, train=False)
+    val_dataset = TinyStoriesDataset(config.VAL_DIR, config.VAL_TXT, tokenizer, train=False)
     val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=config.BATCH_SIZE, shuffle=False, num_workers=4)
 
     model = LLaMA(config.VOCAB_SIZE, config.EMBED_DIM, config.N_HEADS, config.HIDDEN_DIM, config.NUM_LAYERS, config.MAX_SEQ_LEN).to(device)

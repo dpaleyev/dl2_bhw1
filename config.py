@@ -1,6 +1,9 @@
 JSON_DIR = "/notebooks/TinyStories_all_data"
 TXT_DIR = "/notebooks/TinyStories_txt"
-DATASET_DIR = "/notebooks/tokenized"
+
+TRAIN_DIR = "/notebooks/train"
+TRAIN_TXT = "/notebooks/TinyStoriesV3-GPT4-train.txt"
+VAL_DIR = "/notebooks/val"
 VAL_TXT = "/notebooks/TinyStoriesV3-GPT4-valid.txt"
 
 TOKENIZER_PATH = "/notebooks/tokenizer.model"
