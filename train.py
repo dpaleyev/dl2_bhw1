@@ -83,7 +83,7 @@ def generate(model, tokenizer, examples, device, max_len=200, temperature=1.0):
         next_token = torch.multinomial(logits.softmax(dim=-1), num_samples=1)
         prefix = torch.cat((prefix, next_token), dim=-1)
 
-    return tokenizer.decode(prefix)
+    return tokenizer.decode(prefix.cpu().tolist())
 
 def main():
     wandb.init(project="dl2_bhw1", name = config.RUN_NAME)
