@@ -111,9 +111,11 @@ def main():
         val_loss = evaluate(model, criterion, val_dataloader, device)
         examples = generate(model, tokenizer, 3, device)
 
-        wandb.log({"train_loss": train_loss, "val_loss": val_loss})
+        
+        log_msg = {"train_loss": train_loss, "val_loss": val_loss}
         for i, text in enumerate(examples):
-            wandb.log({f"text_{i}": wandb.Html(text)})
+            log_msg.update({f"text_{i}": wandb.Html(text)})
+        wandb.log(log_msg)
         print(f"Epoch {epoch+1} train_loss: {train_loss:.4f} val_loss: {val_loss:.4f}")
 
         if epoch % config.SAVE_PERIOD == 0:
