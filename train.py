@@ -24,7 +24,9 @@ def train_epoch(model, criterion, optimizer, scheduler, dataloader, len_epoch, d
     model.train()
     losses = 0
 
-    for target, target_pad_mask in tqdm(dataloader, desc="train", total=len_epoch):
+    for i, (target, target_pad_mask) in enumerate(tqdm(dataloader, desc="train", total=len_epoch)):
+        if i == len_epoch:
+            break
         target = target.to(device)
         target_pad_mask = target_pad_mask.to(device)[:, :-1]
 
