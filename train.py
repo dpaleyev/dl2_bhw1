@@ -34,22 +34,21 @@ def train_epoch(model, criterion, optimizer, scheduler, dataloader, len_epoch, d
         target_input = target[:, :-1]
 
         target_mask = generate_square_mask(target_input.shape[1], device)
-        if accumulate_steps is None or step % accumulate_steps == 0:
+        
+        if step % accumulate_steps == 0:
             optimizer.zero_grad()
 
-        with torch.autocast(device_type=device, dtype=torch.bfloat16):
-            logits = model(target_input, target_mask, target_pad_mask)
-            target_out = target[:, 1:]
-            loss = criterion(logits.reshape(-1, logits.shape[-1]), target_out.reshape(-1))
+        logits = model(target_input, target_mask, target_pad_mask)
+        target_out = target[:, 1:]
+        loss = criterion(logits.reshape(-1, logits.shape[-1]), target_out.reshape(-1))
 
-        loss = loss / accumulate_steps
         loss.backward()
 
         step += 1
-        if accumulate_steps is None or step % accumulate_steps == 0:
+        
+        if step % accumulate_steps == 0:
             optimizer.step()
             scheduler.step()
-            optimizer.zero_grad()
 
         losses += loss.item()
 
@@ -68,8 +67,7 @@ def evaluate(model, criterion, dataloader, device):
 
             target_mask = generate_square_mask(target_input.shape[1], device)
             
-            with torch.autocast(device_type=device, dtype=torch.bfloat16):
-                logits = model(target_input, target_mask, target_pad_mask)
+            logits = model(target_input, target_mask, target_pad_mask)
 
             target_out = target[:, 1:]
             loss = criterion(logits.reshape(-1, logits.shape[-1]), target_out.reshape(-1))
@@ -111,7 +109,7 @@ def main():
     optimizer = torch.optim.AdamW(model.parameters(), lr=config.LR, weight_decay=config.WEIGHT_DECAY)
     criterion = nn.CrossEntropyLoss(ignore_index=tokenizer.pad_id())
 
-    scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=config.LR, steps_per_epoch=config.EPOCH_LEN, epochs=config.EPOCHS, pct_start=0.2)
+    scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=config.LR, steps_per_epoch=config.EPOCH_LEN // config.ACCUM_STEPS, epochs=config.EPOCHS, pct_start=0.2)
     criterion = nn.CrossEntropyLoss(ignore_index=tokenizer.pad_id())
 
     for epoch in tqdm(range(config.EPOCHS)):
