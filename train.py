@@ -20,9 +20,10 @@ def generate_square_mask(sz, device):
     mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
     return mask
 
-def train_epoch(model, criterion, optimizer, scheduler, dataloader, len_epoch, device):
+def train_epoch(model, criterion, optimizer, scheduler, dataloader, len_epoch, device, accumulate_steps):
     model.train()
     losses = 0
+    step = 0
 
     for i, (target, target_pad_mask) in enumerate(tqdm(dataloader, desc="train", total=len_epoch)):
         if i == len_epoch:
@@ -33,17 +34,23 @@ def train_epoch(model, criterion, optimizer, scheduler, dataloader, len_epoch, d
         target_input = target[:, :-1]
 
         target_mask = generate_square_mask(target_input.shape[1], device)
-        optimizer.zero_grad()
-        
+        if accumulate_steps is None or step % accumulate_steps == 0:
+            optimizer.zero_grad()
+
         with torch.autocast(device_type=device, dtype=torch.bfloat16):
             logits = model(target_input, target_mask, target_pad_mask)
             target_out = target[:, 1:]
             loss = criterion(logits.reshape(-1, logits.shape[-1]), target_out.reshape(-1))
 
+        loss = loss / accumulate_steps
         loss.backward()
 
-        optimizer.step()
-        scheduler.step()
+        step += 1
+        if accumulate_steps is None or step % accumulate_steps == 0:
+            optimizer.step()
+            scheduler.step()
+            optimizer.zero_grad()
+
         losses += loss.item()
 
     return losses / len_epoch
@@ -60,8 +67,9 @@ def evaluate(model, criterion, dataloader, device):
             target_input = target[:, :-1]
 
             target_mask = generate_square_mask(target_input.shape[1], device)
-
-            logits = model(target_input, target_mask, target_pad_mask)
+            
+            with torch.autocast(device_type=device, dtype=torch.bfloat16):
+                logits = model(target_input, target_mask, target_pad_mask)
 
             target_out = target[:, 1:]
             loss = criterion(logits.reshape(-1, logits.shape[-1]), target_out.reshape(-1))
