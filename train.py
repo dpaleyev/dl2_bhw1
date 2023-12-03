@@ -115,7 +115,7 @@ def main():
     criterion = nn.CrossEntropyLoss(ignore_index=tokenizer.pad_id())
 
     for epoch in tqdm(range(config.EPOCHS)):
-        train_loss = train_epoch(model, criterion, optimizer, scheduler, train_dataloader, config.EPOCH_LEN, device)
+        train_loss = train_epoch(model, criterion, optimizer, scheduler, train_dataloader, config.EPOCH_LEN, device, config.ACCUM_STEPS)
         val_loss = evaluate(model, criterion, val_dataloader, device)
         examples = generate(model, tokenizer, 3, device)
 
@@ -126,8 +126,8 @@ def main():
         wandb.log(log_msg)
         print(f"Epoch {epoch+1} train_loss: {train_loss:.4f} val_loss: {val_loss:.4f}")
 
-        if epoch % config.SAVE_PERIOD == 0:
-            torch.save(model.state_dict(), f"model.pth")
+        if (epoch + 1) % config.SAVE_PERIOD == 0:
+            torch.save(model.state_dict(), f"/notebooks/model.pth")
     wandb.finish()
 
 if __name__ == "__main__":
