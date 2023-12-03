@@ -112,7 +112,8 @@ def main():
         examples = generate(model, tokenizer, 3, device)
 
         wandb.log({"train_loss": train_loss, "val_loss": val_loss})
-        wandb.log({"examples": [wandb.Text(example) for example in examples]})
+        for i, text in enumerate(examples):
+            wandb.log({f"text_{i}": wandb.Html(text)})
         print(f"Epoch {epoch+1} train_loss: {train_loss:.4f} val_loss: {val_loss:.4f}")
 
         if epoch % config.SAVE_PERIOD == 0:
