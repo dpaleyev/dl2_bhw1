@@ -1,9 +1,9 @@
 import torch
 import torch.nn as nn
-import tqdm
 import wandb
 
 from itertools import repeat
+from tqdm import tqdm
 
 import config
 from data import TinyStoriesDataset, get_tokenizer
