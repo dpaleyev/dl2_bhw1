@@ -33,13 +33,13 @@ def train_epoch(model, criterion, optimizer, scheduler, dataloader, len_epoch, d
         target_input = target[:, :-1]
 
         target_mask = generate_square_mask(target_input.shape[1], device)
-
-        logits = model(target_input, target_mask, target_pad_mask)
-
         optimizer.zero_grad()
+        
+        with torch.autocast(device_type=device, dtype=torch.bfloat16):
+            logits = model(target_input, target_mask, target_pad_mask)
+            target_out = target[:, 1:]
+            loss = criterion(logits.reshape(-1, logits.shape[-1]), target_out.reshape(-1))
 
-        target_out = target[:, 1:]
-        loss = criterion(logits.reshape(-1, logits.shape[-1]), target_out.reshape(-1))
         loss.backward()
 
         optimizer.step()
