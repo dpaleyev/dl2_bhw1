@@ -96,7 +96,7 @@ def generate(model, tokenizer, examples, device, max_len=200, temperature=1.0):
 def main():
     wandb.init(project="dl2_bhw1", name = config.RUN_NAME)
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = "cuda" if torch.cuda.is_available() else "cpu"
 
     tokenizer = get_tokenizer()
 
