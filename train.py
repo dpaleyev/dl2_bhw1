@@ -101,12 +101,12 @@ def main():
     optimizer = torch.optim.AdamW(model.parameters(), lr=config.LR, weight_decay=config.WEIGHT_DECAY)
     criterion = nn.CrossEntropyLoss(ignore_index=tokenizer.pad_id())
 
-    scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=config.LR, steps_per_epoch=len(train_dataloader), epochs=config.EPOCHS, pct_start=0.2)
+    scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=config.LR, steps_per_epoch=config.EPOCH_LEN, epochs=config.EPOCHS, pct_start=0.2)
     criterion = nn.CrossEntropyLoss(ignore_index=tokenizer.pad_id())
 
     for epoch in tqdm(range(config.EPOCHS)):
-        train_loss = train_epoch(model, optimizer, criterion, train_dataloader)
-        val_loss = evaluate(model, val_dataloader, criterion)
+        train_loss = train_epoch(model, criterion, optimizer, scheduler, train_dataloader, config.EPOCH_LEN, device)
+        val_loss = evaluate(model, criterion, val_dataloader, device)
         examples = generate(model, tokenizer, 3, device)
 
         wandb.log({"train_loss": train_loss, "val_loss": val_loss})
