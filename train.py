@@ -53,7 +53,7 @@ def evaluate(model, criterion, dataloader, device):
     with torch.no_grad():
         for target, target_pad_mask in tqdm(dataloader, desc="val"):
             target = target.to(device)
-            target_pad_mask = target_pad_mask.to(device)
+            target_pad_mask = target_pad_mask.to(device)[:, :-1]
 
             target_input = target[:, :-1]
 
